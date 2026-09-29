@@ -1,5 +1,5 @@
 window.authState=null;
-let deploymentEnvironment='local';
+let demoAvailable=false;
 let setupRequired=false, editingProvider=null, providerRows=[];
 let reviewRows=[], reviewFilter='pending';
 function clearWorkspace(){
@@ -28,7 +28,7 @@ async function enterWorkspace(user){
 }
 async function bootAuth(){
   try{
-    const status=await api('/api/auth/status');setupRequired=status.setup_required;deploymentEnvironment=status.environment;
+    const status=await api('/api/auth/status');setupRequired=status.setup_required;demoAvailable=status.demo_available??status.environment!=='production';
     $('#setup-fields').classList.toggle('hidden',!setupRequired);
     $('#setup-token').required=setupRequired;$('#setup-name').required=setupRequired;
     $('#login-password').minLength=setupRequired?12:1;
@@ -61,7 +61,7 @@ async function loadModels(){
   const chosen=models.find(m=>m.id===prior)||models.find(m=>m.default)||models[0];
   select.innerHTML=models.length?models.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}${m.default?' · 預設':''}</option>`).join(''):'<option value="">尚無可用模型</option>';
   if(chosen)select.value=chosen.id;
-  $('#model-description').textContent=models.length?'訊息與必要資料會送至所選 AI 供應商':(deploymentEnvironment==='production'?'尚無可用 AI，請聯絡管理員。':'管理員可到「管理設定」連接 AI；目前可使用離線規則展示。');
+  $('#model-description').textContent=models.length?'訊息與必要資料會送至所選 AI 供應商':(demoAvailable?'管理員可到「管理設定」連接 AI；目前可使用離線規則展示。':'尚無可用 AI，請聯絡管理員。');
 }
 $('#model-select').addEventListener('change',()=>{
   if(state.failedRequest){toast('請先處理上次尚未確認的訊息。');return;}

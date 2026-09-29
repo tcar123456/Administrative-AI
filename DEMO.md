@@ -14,4 +14,4 @@
 
 誠實說明檢索模式：Cloudflare 版使用打包文件的詞彙比對；Python 版預設是 Qdrant 雜湊向量加詞彙重排；若已配置 `EMBEDDING_MODE=openai`，才是外部語意 Embedding。沒有真實 Key 時只能展示離線規則與 mock 協定驗證，不要說已展示 LLM 推理。
 
-Cloudflare 部署請依 [CLOUDFLARE.md](CLOUDFLARE.md)。不預先建立員工與會議，展示前先新增員工帳號及行程；先以員工送出申請，再切到管理員看審核待辦。
+Zeabur 部署請依 [ZEABUR.md](ZEABUR.md)，以 `ENVIRONMENT=production`、`ALLOW_DEMO=true`、`SEED_DEMO=true` 啟用雲端展示。第一次初始化會將管理員綁定示範員工 E001；其他示範員工沒有預設登入帳號。展示審核前新增一個員工帳號，以該員工送出申請，再切到管理員看待辦。

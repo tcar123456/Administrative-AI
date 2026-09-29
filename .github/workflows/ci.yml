@@ -68,3 +68,22 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements.txt -c requirements.lock
       - run: python -m pytest tests/test_services.py
+      - name: Build Zeabur Docker image
+        run: docker build -t daywork-ci .
+      - name: Smoke test production Demo container and platform port
+        shell: bash
+        run: |
+          export ENCRYPTION_KEY="$(python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())')"
+          docker run -d --name daywork-ci --network host \
+            -e DATABASE_URL -e QDRANT_URL -e ENCRYPTION_KEY \
+            -e ENVIRONMENT=production -e PUBLIC_ORIGIN=https://demo.example.com \
+            -e ALLOW_DEMO=true -e SEED_DEMO=true -e AGENT_MODE=demo \
+            -e PORT=8099 daywork-ci
+          trap 'docker logs daywork-ci; docker rm -f daywork-ci' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent -H 'Host: demo.example.com' http://127.0.0.1:8099/api/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1

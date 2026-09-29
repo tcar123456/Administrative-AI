@@ -71,7 +71,8 @@ def status(request: Request):
     with request.app.state.sessions() as db:
         needed = db.scalar(select(Account.id).limit(1)) is None
     return {'setup_required':needed, 'setup_available':needed and bool(setup_secret(request.app.state.settings)),
-            'environment':request.app.state.settings.environment}
+            'environment':request.app.state.settings.environment,
+            'demo_available':request.app.state.settings.demo_available}
 
 
 @router.post('/auth/setup')

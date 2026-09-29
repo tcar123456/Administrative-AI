@@ -112,7 +112,7 @@ async function refreshDashboard(){
   $('#mode-note').textContent=d.mode==='demo'?'離線規則模式 · 未使用外部 AI':'AI 回答請以引用文件與工具結果為準';
   $('#today').textContent=d.today.replaceAll('-',' / ');$('#profile-name').textContent=d.employee.name;
   $('.avatar').textContent=d.employee.name.slice(-1);
-  $('#data-note').textContent=d.seeded_demo?(d.environment==='cloudflare-demo'?'展示環境：內建政策為虛構，帳號與行程由使用者建立。':'本機示範資料：政策、原有員工與行程均為虛構。'):'AI 可能有誤，請核對文件來源與實際公司制度。';
+  $('#data-note').textContent=d.seeded_demo?(d.environment==='cloudflare-demo'?'展示環境：內建政策為虛構，帳號與行程由使用者建立。':'示範資料：政策、原有員工與行程均為虛構。'):'AI 可能有誤，請核對文件來源與實際公司制度。';
   $('#department').textContent=`${d.employee.department} · ${d.employee.id}`;
   $('#leave-form [name=date]').min=d.today;
   renderLeaves();

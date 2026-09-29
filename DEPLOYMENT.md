@@ -1,6 +1,6 @@
 # 部署與維運
 
-本文適用 Python / Docker 部署。**完全放在 Cloudflare 的 Demo 請改看 [CLOUDFLARE.md](CLOUDFLARE.md)**，它不需要下列容器。
+本文適用自行管理主機的 Python / Docker 部署。**Zeabur 雲端展示請看 [ZEABUR.md](ZEABUR.md)**，由平台處理 HTTPS，使用同一套 Python 後端。
 
 這套配置提供單一組織、單一應用程序的小型部署路徑。它沒有多副本鎖、分散式限流、MFA 或 SSO；不應直接增加 workers／app replicas。全域聊天鎖同時只接受一個 AI 任務，忙碌時回傳 409，使用者可稍後重試。
 
@@ -31,7 +31,7 @@ docker compose --env-file .env.production -f compose.production.yaml logs --tail
 
 開啟 `https://你的網域`，以部署者的 `SETUP_TOKEN` 建立第一位管理員。接著依 [使用者指南](USER_GUIDE.md) 設定 AI、測試工具呼叫、建立員工及正確額度。至少有兩位經授權的管理員，才能審核管理員自己的請假。
 
-`ENVIRONMENT=production` 會檢查 HTTPS 網址、Fernet 主密鑰、關閉示範資料、PostgreSQL、Qdrant server 以及獨立知識庫目錄。Cookie 會設 Secure。API 須符合 PUBLIC_ORIGIN 及 CSRF；請使用一致的正式網域。
+正式使用維持 `ALLOW_DEMO=false`（預設）；只有使用虛構資料的展示站才啟用此例外。`ENVIRONMENT=production` 預設會檢查 HTTPS 網址、Fernet 主密鑰、關閉示範資料、PostgreSQL、Qdrant server 以及獨立知識庫目錄。Cookie 會設 Secure。API 須符合 PUBLIC_ORIGIN 及 CSRF；請使用一致的正式網域。
 
 應用、資料庫、Qdrant 沒有對外 ports；Caddy 只公開 80／443。PostgreSQL／Qdrant 在 internal network，應用另接 edge network 以連線 AI 供應商。只有 Caddy 接觸使用者網路。Uvicorn 不信任代理提供的 Client IP，登入 IP 限流因此以代理為範圍（整體每 15 分鐘最多 20 次），另有每帳號 10 次限制；若組織人數需要放大此限制，必須先設計可信代理來源及邊界限流，不能無限制信任 X-Forwarded-For。
 

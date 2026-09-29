@@ -141,7 +141,7 @@ def health():
 def dashboard(user=Depends(current_user)):
     with SessionLocal() as db:
         employee = db.get(Employee, user.employee_id)
-        return dict(employee={'id': employee.id, 'name': employee.name, 'department': employee.department}, today=today().isoformat(), mode=('configured' if db.scalar(select(AIProvider.id).where(AIProvider.enabled == True)) else ('unconfigured' if settings.environment == 'production' else settings.agent_mode)), environment=settings.environment, seeded_demo=settings.seed_demo, balances=balance_data(db, user.employee_id), leaves=[serialize(r) for r in db.scalars(select(Leave).where(Leave.employee_id == user.employee_id).order_by(Leave.start.desc()))], events=calendar_data(db, user.employee_id, today(), today()+timedelta(days=30)))
+        return dict(employee={'id': employee.id, 'name': employee.name, 'department': employee.department}, today=today().isoformat(), mode=('configured' if db.scalar(select(AIProvider.id).where(AIProvider.enabled == True)) else (settings.agent_mode if settings.demo_available else 'unconfigured')), environment=settings.environment, seeded_demo=settings.seed_demo, demo_available=settings.demo_available, balances=balance_data(db, user.employee_id), leaves=[serialize(r) for r in db.scalars(select(Leave).where(Leave.employee_id == user.employee_id).order_by(Leave.start.desc()))], events=calendar_data(db, user.employee_id, today(), today()+timedelta(days=30)))
 
 
 @app.get('/api/documents')
@@ -210,7 +210,7 @@ def chat(body: ChatInput, user=Depends(current_user)):
             config = db.get(AIProvider, pid) if pid else None
             if pid and (not config or not config.enabled or not config.tested):
                 raise HTTPException(409, '所選模型已停用或需要重新測試，請重新選擇。')
-            if not config and settings.environment == 'production':
+            if not config and not settings.demo_available:
                 raise HTTPException(503, '尚未設定可用的 AI 模型，請聯絡管理員。')
             runner = Runner(db, user.employee_id, app.state.kb, settings)
             if config:

@@ -3,7 +3,7 @@
 一個可部署於單一組織的行政工作台：登入後查詢公司文件、個人假期、行程與建立請假；管理員設定 AI 模型、帳號與審核申請。前端不需 Node build 或外部 CDN。
 
 
-**Cloudflare Demo**：新增 Workers + D1 版本，網站、API 與持久資料全部在 Cloudflare，保留三家 AI 與離線規則展示。請依 [CLOUDFLARE.md](CLOUDFLARE.md) 建立 D1、設定 Secrets 與部署。Cloudflare 工具鏈需要 Node；下方快速開始與安全實作說明適用 Python 版本，兩者資料不互通。
+**Zeabur 部署**：使用 Python / Docker 後端、PostgreSQL 與 Qdrant，部署步驟及雲端 Demo 設定請看 [ZEABUR.md](ZEABUR.md)。展示站可明確啟用離線規則，不需要先準備 AI Key。
 
 **展示完善**：引用可定位原文段落並提示版本變更；獨立審核工作台提供待辦數、搜尋、核准／退回紀錄；個人行程可新增、編輯、刪除，並由助理查詢。見 [DEMO.md](DEMO.md)。
 
@@ -36,7 +36,7 @@ Python 3.12+，在專案根目錄執行：
 - 請假餘額與狀態在交易內更新；重複送出／撤回／審核不重複扣還額度。管理員不能自審。
 - 對話保留、歷史切換、UUID 冪等重試；瀏覽器只使用分頁 sessionStorage 保存對話定位與待重試請求，登出清除。
 - 登入／聊天／模型測試限流，請求大小限制；每次 AI 最多 6 輪、8 次工具呼叫、每次輸出上限 2048 tokens，以及時間上限。
-- PostgreSQL、Qdrant 與 Caddy HTTPS 的正式 Compose；正式模式缺少必要安全設定時拒絕啟動，未設定 AI 時拒絕聊天，不退回離線規則。
+- PostgreSQL、Qdrant 與 Caddy HTTPS 的正式 Compose；正式模式缺少必要安全設定時拒絕啟動，預設未設定 AI 時拒絕聊天；展示站可明確設定 `ALLOW_DEMO=true` 啟用離線規則及虛構政策。
 
 ## 三種供應商，共用四個工具
 

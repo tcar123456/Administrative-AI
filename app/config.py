@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     secret_dir: str = str(ROOT / 'data/secrets')
     setup_token: str = ''
     seed_demo: bool = True
+    allow_demo: bool = False
     embedding_mode: Literal['local', 'openai'] = 'local'
     session_hours: int = Field(default=8, ge=1, le=24)
 
@@ -32,11 +33,13 @@ class Settings(BaseSettings):
         if origin.scheme not in ('http', 'https') or not origin.netloc or origin.path not in ('', '/'):
             raise ValueError('PUBLIC_ORIGIN 必須是完整網站來源，不含路徑。')
         if self.environment == 'production':
-            if origin.scheme != 'https' or not self.encryption_key or self.seed_demo:
-                raise ValueError('正式環境需要 HTTPS PUBLIC_ORIGIN、ENCRYPTION_KEY、SEED_DEMO=false。')
+            if origin.scheme != 'https' or not self.encryption_key:
+                raise ValueError('正式環境需要 HTTPS PUBLIC_ORIGIN 與 ENCRYPTION_KEY。')
+            if self.seed_demo and not self.allow_demo:
+                raise ValueError('正式環境需要 SEED_DEMO=false；展示站必須明確設定 ALLOW_DEMO=true。')
             if not self.database_url.startswith('postgresql') or not self.qdrant_url:
                 raise ValueError('正式環境需要 PostgreSQL 與 Qdrant server。')
-            if Path(self.knowledge_dir).resolve() == (ROOT / 'knowledge').resolve():
+            if not self.allow_demo and Path(self.knowledge_dir).resolve() == (ROOT / 'knowledge').resolve():
                 raise ValueError('正式環境必須使用獨立 KNOWLEDGE_DIR，不能使用內建虛構政策。')
             if self.agent_mode != 'demo':
                 raise ValueError('正式環境請使用管理員 AI 設定，移除舊版 AGENT_MODE=openai。')
@@ -44,6 +47,10 @@ class Settings(BaseSettings):
             Fernet(self.encryption_key.encode())
         if self.setup_token and len(self.setup_token) < 32:
             raise ValueError('SETUP_TOKEN 至少需 32 字元。')
+
+    @property
+    def demo_available(self) -> bool:
+        return self.environment == 'local' or self.allow_demo
 
 
 settings = Settings()

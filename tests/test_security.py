@@ -165,8 +165,38 @@ def test_configured_chat_uses_chosen_provider_and_tools(client,monkeypatch):
 
 def test_no_silent_demo_fallback_in_production(client,monkeypatch):
     monkeypatch.setattr(main.settings,'environment','production')
+    assert client.get('/api/auth/status').json()['demo_available'] is False
+    assert client.get('/api/dashboard').json()['mode'] == 'unconfigured'
     r=client.post('/api/chat',json={'message':'你好'})
     assert r.status_code==503 and '尚未設定' in r.text
+
+
+def test_explicit_cloud_demo_keeps_auth_and_secure_cookies(client,monkeypatch):
+    monkeypatch.setattr(main.settings,'environment','production')
+    monkeypatch.setattr(main.settings,'allow_demo',True)
+    assert client.get('/api/auth/status').json()['demo_available'] is True
+    assert client.get('/api/dashboard').json()['mode'] == 'demo'
+    r=client.post('/api/chat',json={'message':'特休規定是什麼？我還剩多少假？'})
+    assert r.status_code == 200, r.text
+    assert r.json()['mode'] == 'demo' and r.json()['sources']
+    assert r.headers['Strict-Transport-Security'] == 'max-age=31536000'
+    assert client.post('/api/chat',json={'message':'你好'},headers={'X-CSRF-Token':''}).status_code == 403
+    assert client.post('/api/chat',json={'message':'你好'},headers={'Origin':'https://evil.example'}).status_code == 403
+    client.cookies.clear()
+    assert client.get('/api/dashboard').status_code == 401
+    r=client.post('/api/auth/login',json={'username':'admin','password':'test-password-123'})
+    assert r.status_code == 200 and 'Secure' in r.headers['set-cookie']
+
+
+def test_cloud_demo_still_requires_secure_runtime():
+    base={'environment':'production','allow_demo':True,'seed_demo':True,
+          'public_origin':'https://demo.example.com','encryption_key':Fernet.generate_key().decode(),
+          'database_url':'postgresql+psycopg://a:b@localhost/db','qdrant_url':'http://localhost:6333'}
+    Settings(_env_file=None,**base).validate_runtime()
+    for field,value in [('allow_demo',False),('public_origin','http://demo.example.com'),
+                        ('encryption_key',''),('database_url','sqlite:///demo.db'),('qdrant_url','')]:
+        with pytest.raises(ValueError):
+            Settings(_env_file=None,**{**base,field:value}).validate_runtime()
 
 
 def test_production_configuration_fails_closed(tmp_path):
