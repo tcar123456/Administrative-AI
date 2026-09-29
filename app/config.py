@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     setup_token: str = ''
     seed_demo: bool = True
     allow_demo: bool = False
+    demo_admin: bool = True
     embedding_mode: Literal['local', 'openai'] = 'local'
     session_hours: int = Field(default=8, ge=1, le=24)
 

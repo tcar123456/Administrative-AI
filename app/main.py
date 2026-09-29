@@ -21,6 +21,7 @@ from app.security import current_user, read_session, vault, setup_secret, RateLi
 from app.admin import router, default_id
 from app.calendar import router as calendar_router
 from app.db import AIProvider, LeaveReview
+from app.demo_accounts import initialize_demo_admin
 import secrets
 
 log = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ async def lifespan(app):
         except InvalidToken:
             raise ValueError('加密主密鑰與既有 AI 設定不符，請還原原本的 ENCRYPTION_KEY 或本機密鑰檔案。') from None
     app.state.limiter = RateLimiter()
+    initialize_demo_admin(SessionLocal, settings)
     setup_secret(settings)
     app.state.kb = Knowledge(settings)
     try:

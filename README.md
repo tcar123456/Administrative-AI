@@ -15,13 +15,15 @@ Python 3.12+，在專案根目錄執行：
 ./start.ps1 -InstallDependencies
 ```
 
-已安裝套件時可用 `./start.ps1`。瀏覽 http://127.0.0.1:8000 。首次使用需建立管理員，沒有預設密碼。在另一個終端執行以下指令，將代碼填入初始化頁面：
+已安裝套件時可用 `./start.ps1`。瀏覽 http://127.0.0.1:8000 。全新 Demo 資料庫會自動建立管理員，直接以 **帳號 `admin`、密碼 `000000`** 登入，不需初始化代碼。
+
+如需自行建立第一位管理員，設定 `DEMO_ADMIN=false` 後啟動，並在另一個終端取得初始化代碼：
 
 ```powershell
 .\.venv\Scripts\python.exe -m app.manage setup-code
 ```
 
-輸入姓名、帳號及至少 12 字元密碼。登入後到 **管理設定 → 連接一個 AI 模型**，填入供應商、模型 ID 與 API Key，依序 **加密儲存 → 測試連線 → 啟用 → 設為預設**。
+手動初始化時輸入姓名、帳號及至少 12 字元密碼。登入後到 **管理設定 → 連接一個 AI 模型**，填入供應商、模型 ID 與 API Key，依序 **加密儲存 → 測試連線 → 啟用 → 設為預設**。
 
 ## Zeabur Demo 部署
 
@@ -37,10 +39,13 @@ Python 3.12+，在專案根目錄執行：
 | `QDRANT_URL` | `http://實際Qdrant內網主機:6333` |
 | `AGENT_MODE` / `EMBEDDING_MODE` | 分別為 `demo` / `local` |
 | `KNOWLEDGE_DIR` | `/app/knowledge` |
+| `DEMO_ADMIN` | `true`（預設），全新 Demo 資料庫建立 `admin`／`000000` |
 | `ENCRYPTION_KEY` | 固定的 Fernet 主密鑰，以 `python -m app.manage new-key` 產生並安全保存 |
-| `SETUP_TOKEN` | 至少 32 字元隨機代碼，例如以 `python -c "import secrets; print(secrets.token_urlsafe(32))"` 產生 |
+| `SETUP_TOKEN` | 自動建立 Demo 管理員時可留空；手動初始化才需要至少 32 字元隨機代碼 |
 
-開啟 HTTPS 網站，以 `SETUP_TOKEN` 建立管理員；未設定模型時可展示離線規則。新增另一個員工帳號，演示送假後切回管理員審核。重新啟動應用後確認資料仍在，正式網址 `/api/health` 應回應 `status: ok`。應用會驗證 Host，平台探針需使用正確 Host 或 TCP 探針。
+開啟 HTTPS 網站，以 `admin`／`000000` 登入；未設定模型時可展示離線規則。新增另一個員工帳號，演示送假後切回管理員審核。重新啟動應用後確認資料仍在，正式網址 `/api/health` 應回應 `status: ok`。應用會驗證 Host，平台探針需使用正確 Host 或 TCP 探針。
+
+預設帳密只在允許 Demo 且 `SEED_DEMO=true` 的空帳號資料庫建立。已有帳號時不會覆寫密碼，改密碼或停用後也不會因重啟還原。
 
 密鑰不要提交 Git，也不要在重新部署時重產。正式使用應另建乾淨資料庫與儲存，設定 `ALLOW_DEMO=false`、`SEED_DEMO=false`，提供獨立 `KNOWLEDGE_DIR` 的真實政策，並啟用 AI 模型；關閉示範資料開關不會刪除既有資料。
 

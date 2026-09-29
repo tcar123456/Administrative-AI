@@ -16,7 +16,7 @@ from app.leave_service import confirm_leave, withdraw_leave
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    settings = Settings(_env_file=None, agent_mode='demo', database_url=f'sqlite:///{tmp_path / "test.db"}', qdrant_path=str(tmp_path/'qdrant'), qdrant_url='', public_origin='http://testserver', secret_dir=str(tmp_path/'secrets'))
+    settings = Settings(_env_file=None, agent_mode='demo', demo_admin=False, database_url=f'sqlite:///{tmp_path / "test.db"}', qdrant_path=str(tmp_path/'qdrant'), qdrant_url='', public_origin='http://testserver', secret_dir=str(tmp_path/'secrets'))
     engine = make_engine(settings.database_url)
     monkeypatch.setattr(main, 'engine', engine)
     monkeypatch.setattr(main, 'SessionLocal', sessionmaker(engine, expire_on_commit=False))

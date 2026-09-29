@@ -8,13 +8,13 @@ from fastapi.testclient import TestClient
 @pytest.mark.skipif(os.getenv('RUN_SERVICE_TESTS') != '1', reason='Requires disposable PostgreSQL and Qdrant services')
 def test_postgres_qdrant_end_to_end():
     from app.main import app
-    from app.security import setup_secret
     from app.config import settings
     from app.db import today
     assert settings.agent_mode == 'demo'
     assert settings.database_url.startswith('postgresql') and settings.qdrant_url
     with TestClient(app, base_url=settings.public_origin, headers={'Origin':settings.public_origin}) as client:
-        result=client.post('/api/auth/setup',json={'username':'admin','password':'ci-service-password-123','name':'CI Admin','token':setup_secret(settings)})
+        assert client.get('/api/auth/status').json()['setup_required'] is False
+        result=client.post('/api/auth/login',json={'username':'admin','password':'000000'})
         assert result.status_code==200, result.text
         client.headers['X-CSRF-Token']=result.json()['csrf']
         assert client.get('/api/health').status_code == 200
