@@ -3,9 +3,9 @@
 一個可部署於單一組織的行政工作台：登入後查詢公司文件、個人假期、行程與建立請假；管理員設定 AI 模型、帳號與審核申請。前端不需 Node build 或外部 CDN。
 
 
-**Zeabur 部署**：使用 Python / Docker 後端、PostgreSQL 與 Qdrant，部署步驟及雲端 Demo 設定請看 [ZEABUR.md](ZEABUR.md)。展示站可明確啟用離線規則，不需要先準備 AI Key。
+**Zeabur 部署**：使用 Python / Docker 後端、PostgreSQL 與 Qdrant，設定見下方。展示站可明確啟用離線規則，不需要先準備 AI Key。
 
-**展示完善**：引用可定位原文段落並提示版本變更；獨立審核工作台提供待辦數、搜尋、核准／退回紀錄；個人行程可新增、編輯、刪除，並由助理查詢。見 [DEMO.md](DEMO.md)。
+**展示完善**：引用可定位原文段落並提示版本變更；獨立審核工作台提供待辦數、搜尋、核准／退回紀錄；個人行程可新增、編輯、刪除，並由助理查詢。
 
 ## 快速開始
 
@@ -23,7 +23,26 @@ Python 3.12+，在專案根目錄執行：
 
 輸入姓名、帳號及至少 12 字元密碼。登入後到 **管理設定 → 連接一個 AI 模型**，填入供應商、模型 ID 與 API Key，依序 **加密儲存 → 測試連線 → 啟用 → 設為預設**。
 
-完整逐步說明見 [USER_GUIDE.md](USER_GUIDE.md)。正式部署見 [DEPLOYMENT.md](DEPLOYMENT.md)。
+## Zeabur Demo 部署
+
+1. 在同一專案建立 PostgreSQL 與 Qdrant（image `qdrant/qdrant:v1.17.0`、HTTP 6333）。兩者使用內網，確認 PostgreSQL 資料目錄及 Qdrant `/qdrant/storage` 已掛載持久儲存。
+2. 匯入本儲存庫 `main` 分支，使用根目錄 `Dockerfile`，不需 npm 建置。應用會讀取平台 `PORT`；維持 1 個 replica、1 個 worker，並綁定 HTTPS 網域。
+3. 在應用服務設定以下環境變數，再重新部署：
+
+| 變數 | 值 |
+| --- | --- |
+| `ENVIRONMENT` / `ALLOW_DEMO` / `SEED_DEMO` | 分別為 `production` / `true` / `true` |
+| `PUBLIC_ORIGIN` | 實際 HTTPS 網址，不含路徑 |
+| `DATABASE_URL` | `postgresql+psycopg://USER:PASSWORD@PRIVATE_HOST:5432/DATABASE`，換成實際值，帳密特殊字元需 URL 編碼 |
+| `QDRANT_URL` | `http://實際Qdrant內網主機:6333` |
+| `AGENT_MODE` / `EMBEDDING_MODE` | 分別為 `demo` / `local` |
+| `KNOWLEDGE_DIR` | `/app/knowledge` |
+| `ENCRYPTION_KEY` | 固定的 Fernet 主密鑰，以 `python -m app.manage new-key` 產生並安全保存 |
+| `SETUP_TOKEN` | 至少 32 字元隨機代碼，例如以 `python -c "import secrets; print(secrets.token_urlsafe(32))"` 產生 |
+
+開啟 HTTPS 網站，以 `SETUP_TOKEN` 建立管理員；未設定模型時可展示離線規則。新增另一個員工帳號，演示送假後切回管理員審核。重新啟動應用後確認資料仍在，正式網址 `/api/health` 應回應 `status: ok`。應用會驗證 Host，平台探針需使用正確 Host 或 TCP 探針。
+
+密鑰不要提交 Git，也不要在重新部署時重產。正式使用應另建乾淨資料庫與儲存，設定 `ALLOW_DEMO=false`、`SEED_DEMO=false`，提供獨立 `KNOWLEDGE_DIR` 的真實政策，並啟用 AI 模型；關閉示範資料開關不會刪除既有資料。
 
 ## 已實作
 
@@ -61,7 +80,7 @@ flowchart LR
 
 ## 聊天模型與文件檢索分開設定
 
-`AGENT_MODE=demo` 是本機尚未設定任何 AI 時的離線規則備援，不影響管理介面啟用的模型。正式環境只接受管理介面設定的 AI。舊版 `AGENT_MODE=openai` 僅保留本機相容性，不建議再使用。
+`AGENT_MODE=demo` 是本機尚未設定任何 AI 時的離線規則備援，不影響管理介面啟用的模型。正式環境預設只接受管理介面設定的 AI，展示站需明確開啟 `ALLOW_DEMO=true`。舊版 `AGENT_MODE=openai` 僅保留本機相容性，不建議再使用。
 
 `EMBEDDING_MODE=local` 預設使用 512 維字元 bigram 雜湊向量與詞片重排，無外部嵌入費用；**它是詞彙檢索，不等同語意 Embedding**。三家聊天模型均可使用此檢索結果。
 
@@ -77,7 +96,7 @@ EMBEDDING_MODEL=text-embedding-3-small
 
 ## 文件與資料
 
-本機首次啟動保留原有示範資料，或建立 10 位虛構員工及 6 份虛構政策。第一位本機管理員綁定 E001；其他示範員工沒有登入憑證。新增真實帳號使用新的員工編號，初始額度由管理員輸入。正式模式不建立任何示範員工，且必須使用獨立的公司文件目錄。
+啟用 `SEED_DEMO=true` 時，首次啟動保留原有示範資料，或建立 10 位虛構員工及 6 份虛構政策。第一位管理員綁定 E001；其他示範員工沒有登入憑證。新增帳號使用新的員工編號，初始額度由管理員輸入。正式模式預設禁止示範資料且要求獨立公司文件目錄，只有明確開啟 `ALLOW_DEMO=true` 的展示站例外。`knowledge/` 的 Markdown 是應用讀取的必要展示資料。
 
 `.md`、`.txt` 和可選取文字的 `.pdf` 放在 `KNOWLEDGE_DIR`，重啟服務索引；掃描 PDF 先 OCR。索引先建立新 collection 再切換 alias。舊 collection 保留，需部署者定期清理。嵌入式 Qdrant 必須停止 app 才能另跑 `python -m app.ingest`。
 
@@ -110,6 +129,6 @@ docker compose config --quiet
 
 測試覆蓋登入、CSRF、角色與員工隔離、加密遮罩、Key 輪替、模型啟用門檻、供應商工具往返協定、請假併發與冪等，以及原有 RAG／對話行為。供應商協定使用 mock HTTP，不代表真實 Key／模型連線已通過。
 
-PostgreSQL + Qdrant server 的測試僅在 `RUN_SERVICE_TESTS=1` 且指向拋棄式服務時執行。GitHub Actions 配有 Windows／Linux 與服務測試，但本次沒有遠端 CI 執行結果。
+PostgreSQL + Qdrant server 的測試僅在 `RUN_SERVICE_TESTS=1` 且指向拋棄式服務時執行。GitHub Actions 配有 Windows／Linux、服務整合及 Docker 容器啟動測試。
 
-目前定位是**單一組織、單一 app instance／worker 的小型部署**，全域聊天鎖限制同時一個 AI 任務。多租戶、SSO／MFA、跨實例分散式限流與任務鎖、大型組織分級核決、HRIS／Google Calendar 同步、假期到期及自動年度給假都尚未實作。上線前必須確認固定工作時段、請假規則及資料處理範圍符合實際組織制度；詳見部署文件。
+目前定位是**單一組織、單一 app instance／worker 的小型部署**，全域聊天鎖限制同時一個 AI 任務。多租戶、SSO／MFA、跨實例分散式限流與任務鎖、大型組織分級核決、HRIS／Google Calendar 同步、假期到期及自動年度給假都尚未實作。上線前必須確認固定工作時段、請假規則及資料處理範圍符合實際組織制度。
