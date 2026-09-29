@@ -1,0 +1,48 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      PUBLIC_ORIGIN: http://127.0.0.1:8000
+      EMBEDDING_MODE: ${EMBEDDING_MODE:-local}
+      AGENT_MODE: ${AGENT_MODE:-demo}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      DATABASE_URL: postgresql+psycopg://daywork:daywork_local_only@postgres:5432/daywork
+      QDRANT_URL: http://qdrant:6333
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: on-failure:3
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: daywork
+      POSTGRES_PASSWORD: daywork_local_only
+      POSTGRES_DB: daywork
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daywork -d daywork"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  qdrant:
+    image: qdrant/qdrant:v1.17.0
+    volumes:
+      - qdrant_data:/qdrant/storage
+volumes:
+  app_data:
+  postgres_data:
+  qdrant_data:

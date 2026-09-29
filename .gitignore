@@ -1,0 +1,17 @@
+.venv/
+.env
+data/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+artifacts/
+.env.production
+.env.*.local
+company-knowledge/
+node_modules/
+.wrangler/
+.generated/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

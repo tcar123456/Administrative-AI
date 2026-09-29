@@ -1,0 +1,73 @@
+# Standalone production compose file. Use --env-file .env.production explicitly.
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [edge]
+    restart: unless-stopped
+  app:
+    build: .
+    environment:
+      ENVIRONMENT: production
+      PUBLIC_ORIGIN: https://${APP_DOMAIN:?Set APP_DOMAIN}
+      SEED_DEMO: "false"
+      AGENT_MODE: demo
+      DATABASE_URL: postgresql+psycopg://daywork:${POSTGRES_PASSWORD:?Use a strong URL-safe password}@postgres:5432/daywork
+      QDRANT_URL: http://qdrant:6333
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set persistent Fernet key}
+      SETUP_TOKEN: ${SETUP_TOKEN:?Set strong bootstrap token}
+      KNOWLEDGE_DIR: /app/company-knowledge
+      EMBEDDING_MODE: ${EMBEDDING_MODE:-local}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+    volumes:
+      - ./company-knowledge:/app/company-knowledge:ro
+    networks: [edge, backend]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-proxy-headers"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8000/api/health',headers={'Host':os.environ['PUBLIC_ORIGIN'].split('//')[1]}); urllib.request.urlopen(r)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: daywork
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: daywork
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daywork -d daywork"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  qdrant:
+    image: qdrant/qdrant:v1.17.0
+    volumes: ["qdrant_data:/qdrant/storage"]
+    networks: [backend]
+    restart: unless-stopped
+networks:
+  edge:
+  backend:
+    internal: true
+volumes:
+  postgres_data:
+  qdrant_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,17 @@
+{
+  "name": "daywork-cloudflare-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node cloudflare/build.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 migrations apply daywork-demo --local",
+    "db:remote": "wrangler d1 migrations apply daywork-demo --remote",
+    "test": "npm run build && node --test cloudflare/tests/*.test.mjs",
+    "check": "node --check static/app.js && node --check static/settings.js && node --check static/calendar.js"
+  },
+  "devDependencies": { "wrangler": "4.143.0" },
+  "overrides": { "undici": "7.29.1" },
+  "engines": { "node": ">=22.13" }
+}

@@ -1,0 +1,14 @@
+.venv
+.env
+.git
+data
+artifacts
+__pycache__
+.pytest_cache
+*.log
+.env.*
+company-knowledge
+node_modules
+.wrangler
+.generated
+.dev.vars*

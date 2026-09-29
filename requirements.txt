@@ -1,0 +1,13 @@
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
+sqlalchemy>=2.0,<3
+openai>=1.68,<4
+qdrant-client>=1.13,<2
+pydantic-settings>=2.8,<3
+psycopg[binary]>=3.2,<4
+pypdf>=5,<7
+tzdata>=2025.1
+httpx>=0.28,<1
+pytest>=8,<10
+cryptography>=46,<47
+argon2-cffi>=25,<26
